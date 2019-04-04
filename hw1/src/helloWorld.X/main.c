@@ -24,17 +24,17 @@
 
 // DEVCFG2 - get the sysclk clock to 48MHz from the 8MHz crystal
 #pragma config FPLLIDIV = 0x1 // divide input clock to be in range 4-5MHz
-#pragma config FPLLMUL = x // multiply clock after FPLLIDIV
-#pragma config FPLLODIV = x // divide clock after FPLLMUL to get 48MHz
-#pragma config UPLLIDIV = x // divider for the 8MHz input clock, then multiplied by 12 to get 48MHz for USB
-#pragma config UPLLEN = x // USB clock on
+#pragma config FPLLMUL = 0x7 // multiply clock after FPLLIDIV
+#pragma config FPLLODIV = 0x1 // divide clock after FPLLMUL to get 48MHz
+#pragma config UPLLIDIV = 0x1 // divider for the 8MHz input clock, then multiplied by 12 to get 48MHz for USB
+#pragma config UPLLEN = 0x0 // USB clock on
 
 // DEVCFG3
 #pragma config USERID = 0 // some 16bit userid, doesn't matter what
-#pragma config PMDL1WAY = x // allow multiple reconfigurations
-#pragma config IOL1WAY = x // allow multiple reconfigurations
-#pragma config FUSBIDIO = x // USB pins controlled by USB module
-#pragma config FVBUSONIO = x // USB BUSON controlled by USB module
+#pragma config PMDL1WAY = 0x0 // allow multiple reconfigurations
+#pragma config IOL1WAY = 0x0 // allow multiple reconfigurations
+#pragma config FUSBIDIO = 0x1 // USB pins controlled by USB module
+#pragma config FVBUSONIO = 0x1 // USB BUSON controlled by USB module
 
 
 int main() {
@@ -52,6 +52,9 @@ int main() {
 
     // disable JTAG to get pins back
     DDPCONbits.JTAGEN = 0;
+    TRISAbits.TRISA4 = 0;
+    TRISBbits.TRISB4 = 1;
+    LATAbits.LATA4 = 1; // LED pin high
 
     // do your TRIS and LAT commands here
 
@@ -60,9 +63,13 @@ int main() {
     while(1) {
 	// use _CP0_SET_COUNT(0) and _CP0_GET_COUNT() to test the PIC timing
 	// remember the core timer runs at half the sysclk
-        while(_CP0_GET_COUNT() < x) {
-            Nop();
-        }
-        /////////////// invert LED here
+        //_CP0_SET_COUNT(0);
+        //LATAbits.LATA4 = 0;
+        //while(_CP0_GET_COUNT() < x) {
+        //    Nop();
+        //}
+        //LATAbits.LATA4 = 1;
+        /////////////// invert LED here the pin is RA4 / pin 12
+        ;
     }
 }
