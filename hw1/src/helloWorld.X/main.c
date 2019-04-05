@@ -63,13 +63,19 @@ int main() {
     while(1) {
 	// use _CP0_SET_COUNT(0) and _CP0_GET_COUNT() to test the PIC timing
 	// remember the core timer runs at half the sysclk
-        //_CP0_SET_COUNT(0);
-        //LATAbits.LATA4 = 0;
-        //while(_CP0_GET_COUNT() < x) {
-        //    Nop();
-        //}
-        //LATAbits.LATA4 = 1;
+        
+        if (PORTBbits.RB4) {
+            _CP0_SET_COUNT(0);
+            LATAbits.LATA4 = 0;
+            while(_CP0_GET_COUNT() < 12000) {
+                ;
+            }
+            LATAbits.LATA4 = 1;
+            _CP0_SET_COUNT(0);
+            while(_CP0_GET_COUNT() < 12000) {
+                ;
+            }        
+        }
         /////////////// invert LED here the pin is RA4 / pin 12
-        ;
     }
 }
