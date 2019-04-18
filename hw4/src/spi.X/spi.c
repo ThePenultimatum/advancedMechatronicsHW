@@ -126,7 +126,9 @@ int main(void) {
 
   __builtin_enable_interrupts();
   
-  uint32_t i = 0;
+  uint32_t i = 0, j = 0;
+  int sign = 150;
+  int toAdd = 0;
 
   while(1) {
     //
@@ -145,14 +147,29 @@ int main(void) {
     //      
       
 	_CP0_SET_COUNT(0);
-	float f = 2048 + 2047 * sin(i*2*3.1415/1000*10);  //should make a 10Hz sin wave)
-    //int g = 2047 + 
+	float f = 2048 + 2047 * sin(i*2*3.1415/300*10);  //should make a 10Hz sin wave)
+    
+    if ((toAdd + 2047 > 4094) || (toAdd + 2047 <= 0)) {
+        sign *= -1;
+    }
+    
+    int g = 2047 + toAdd;
+    if (g >= 4094) {
+        g = 4094;
+    } else if (g < 0) {
+        g = 0;
+    }
 	i++;
+    toAdd += sign;
+    //if (j >= 4094) {
+    //    j = 0;
+    //}
     //int rounded = (int) roundf((float) f);
 
 	//setVoltage(0,512);		//test
 	//setVoltage(1,256);		//test
     setVoltage(0, ceilf(f));
+    setVoltage(1, g);
     //setVoltage(1, 1);
 
 	//while(_CP0_GET_COUNT() < 100) {}  //check this is 24Million
