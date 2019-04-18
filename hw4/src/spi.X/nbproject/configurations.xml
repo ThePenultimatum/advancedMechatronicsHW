@@ -19,8 +19,6 @@
       <itemPath>Makefile</itemPath>
     </logicalFolder>
     <itemPath>spi.c</itemPath>
-    <itemPath>NU32.c</itemPath>
-    <itemPath>NU32.h</itemPath>
   </logicalFolder>
   <projectmakefile>Makefile</projectmakefile>
   <confs>

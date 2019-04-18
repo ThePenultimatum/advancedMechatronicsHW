@@ -1,8 +1,7 @@
-#include <math.h> 	//for sine wave plotting
 #include<xc.h>           // processor SFR definitions
-#include<sys/attribs.h>  // __ISR macro
-#include "NU32.h"
+#include <math.h> 	//for sine wave plotting
 #include <stdint.h>
+#include<sys/attribs.h>  // __ISR macro
 //#include "NU32.h"       // constants, funcs for startup and UART
 // Demonstrates spi by accessing external ram
 // PIC is the master, ram is the slave
@@ -64,24 +63,12 @@ void init_spi1() {
   // setup spi1 , all bits must be changed for SPI1 from SPI1
   SPI1CON = 0;              // turn off the spi module and reset it
   SPI1BUF;                  // clear the rx buffer by reading from it
-  SPI1BRG = 0x3;            // baud rate to 10 MHz [SPI1BRG = (80000000/(2*desired))-1]
+  SPI1BRG = 0x9C3; // this makes it 9600 baud //0x3;            // baud rate to 10 MHz [SPI1BRG = (80000000/(2*desired))-1]
   SPI1STATbits.SPIROV = 0;  // clear the overflow bit
   SPI1CONbits.CKE = 1;      // data changes when clock goes from hi to lo (since CKP is 0)
   SPI1CONbits.MSTEN = 1;    // master operation
   SPI1CONbits.ON = 1;       // turn on spi 1
   
-}
-
-// send a byte via spi to the DAC in particular (16 bits at a time) and return the response
-unsigned char spi1_io_DAC(uint16_t input) {
-  unsigned char left0 = (unsigned char) ((input >> 12) & 0xF);
-  unsigned char left1 = (unsigned char) ((input >> 8) & 0xF);
-  unsigned char left2 = (unsigned char) ((input >> 4) & 0xF);
-  unsigned char left3 = (unsigned char) (input & 0xF);
-  spi1_io(left0);
-  spi1_io(left1);
-  spi1_io(left2);
-  return spi1_io(left3);
 }
 
 unsigned char spi1_io(unsigned char input) {
@@ -92,40 +79,84 @@ unsigned char spi1_io(unsigned char input) {
   return SPI1BUF;
 }
 
-//uint16_t packDAC(uint16_t ab, uint16_t buf, uint16_t gain, uint16_t shutdown, uint16_t n) {
-//    return n | (ab << 15) | (buf << 14) | (gain << 13) | (shutdown << 12);
-//}
-
-int main(void) {
-
-  init_spi1();
-
-  while(1) {
-	_CPO_SET_COUNT(0);
-	//float f = 512 +512*sin(i*2*3.1415/1000*10);  //should make a 10Hz sin wave)
-	i++;
-
-	setVoltage(0,512);		//test
-	setVoltage(1,256);		//test
-
-	while(_CPO_GET_COUNT() < 2400000000/1000) {}  //check this is 24Million
-    ;
-  }
-  return 0;
+// send a byte via spi to the DAC in particular (16 bits at a time) and return the response
+unsigned char spi1_io_DAC(uint16_t input) {
+  unsigned char left = (unsigned char) ((input >> 8) & 0xFF);
+  unsigned char right = (unsigned char) (input & 0xFF);
+  spi1_io(left);
+  return spi1_io(right);
 }
-
-
 
 void setVoltage(char a, int v) {
 
 	unsigned short t = 0;
 	t= a << 15; //a is at the very end of the data transfer
-	t = t | 0b01110000000000000;
-	t = t | ((v&0b111111111111) <<2); //rejecting excessive bits (above 10)
+	t = t | 0b0111000000000000;
+	t = t | ((v&0b111111111111));
 	
 	CS = 0;
 	//spi1_io(t>>8);
-	spi1_io(t);
+	spi1_io_DAC(t);
     CS = 1;
 	
+}
+
+int main(void) {
+  
+  __builtin_disable_interrupts();
+  CS = 1;
+  init_spi1();
+  // set the CP0 CONFIG register to indicate that kseg0 is cacheable (0x3)
+  __builtin_mtc0(_CP0_CONFIG, _CP0_CONFIG_SELECT, 0xa4210583);
+
+  // 0 data RAM access wait states
+  BMXCONbits.BMXWSDRM = 0x0;
+
+  // enable multi vector interrupts
+  INTCONbits.MVEC = 0x1;
+
+  // disable JTAG to get pins back
+  DDPCONbits.JTAGEN = 0;
+  TRISAbits.TRISA4 = 0;
+  TRISBbits.TRISB4 = 1;
+  TRISBbits.TRISB8 = 0;
+  LATAbits.LATA4 = 1; // LED pin high
+
+  // do your TRIS and LAT commands here
+
+  __builtin_enable_interrupts();
+  
+  uint32_t i = 0;
+
+  while(1) {
+    //
+    /*if (PORTBbits.RB4) {
+            _CP0_SET_COUNT(0);
+            LATAbits.LATA4 = 0;
+            while(_CP0_GET_COUNT() < 12000) {
+                ;
+            }
+            LATAbits.LATA4 = 1;
+            _CP0_SET_COUNT(0);
+            while(_CP0_GET_COUNT() < 12000) {
+                ;
+            }
+    }*/
+    //      
+      
+	_CP0_SET_COUNT(0);
+	float f = 2048 + 2047 * sin(i*2*3.1415/1000*10);  //should make a 10Hz sin wave)
+    //int g = 2047 + 
+	i++;
+    //int rounded = (int) roundf((float) f);
+
+	//setVoltage(0,512);		//test
+	//setVoltage(1,256);		//test
+    setVoltage(0, ceilf(f));
+    //setVoltage(1, 1);
+
+	//while(_CP0_GET_COUNT() < 100) {}  //check this is 24Million
+    ;
+  }
+  return 0;
 }
