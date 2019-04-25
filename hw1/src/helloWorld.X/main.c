@@ -53,28 +53,57 @@ int main() {
     // disable JTAG to get pins back
     DDPCONbits.JTAGEN = 0;
     TRISAbits.TRISA4 = 0;
-    TRISBbits.TRISB4 = 1;
+    //TRISBbits.TRISB4 = 1;
+    //TRISBbits.TRISB8 = 0;
     LATAbits.LATA4 = 1; // LED pin high
 
     // do your TRIS and LAT commands here
+    //LATBbits.LATB8 = 1;
 
     __builtin_enable_interrupts();
     
     while(1) {
 	// use _CP0_SET_COUNT(0) and _CP0_GET_COUNT() to test the PIC timing
 	// remember the core timer runs at half the sysclk
+        //LATAbits.LATA4 = 0;
         
-        if (PORTBbits.RB4) {
-            _CP0_SET_COUNT(0);
-            LATAbits.LATA4 = 0;
-            while(_CP0_GET_COUNT() < 12000) {
-                ;
-            }
-            LATAbits.LATA4 = 1;
-            _CP0_SET_COUNT(0);
-            while(_CP0_GET_COUNT() < 12000) {
-                ;
-            }        
+        
+        
+        LATAbits.LATA4 = 0;
+        _CP0_SET_COUNT(0);
+        while(_CP0_GET_COUNT() < 12000) {
+           ;
+        }
+        while (!PORTBbits.RB4) {
+            ;
+//            _CP0_SET_COUNT(0);
+//            LATAbits.LATA4 = 0;
+//            while(_CP0_GET_COUNT() < 12000) {
+//                ;
+//            }
+//            LATAbits.LATA4 = 1;
+//            _CP0_SET_COUNT(0);
+//            while(_CP0_GET_COUNT() < 12000) {
+//                ;
+//            }        
+        }
+        LATAbits.LATA4 = 1;
+        _CP0_SET_COUNT(0);
+        while(_CP0_GET_COUNT() < 12000) {
+            ;
+        }        
+        while (!PORTBbits.RB4) {
+            ;
+//            _CP0_SET_COUNT(0);
+//            LATAbits.LATA4 = 0;
+//            while(_CP0_GET_COUNT() < 12000) {
+//                ;
+//            }
+//            LATAbits.LATA4 = 1;
+//            _CP0_SET_COUNT(0);
+//            while(_CP0_GET_COUNT() < 12000) {
+//                ;
+//            }        
         }
         /////////////// invert LED here the pin is RA4 / pin 12
     }
