@@ -1,6 +1,7 @@
 #include<xc.h>           // processor SFR definitions
 #include <math.h> 	//for sine wave plotting
 #include <stdint.h>
+#include <stdio.h>
 #include<sys/attribs.h>  // __ISR macro
 //#include "NU32.h"       // constants, funcs for startup and UART
 // Demonstrates spi by accessing external ram
@@ -79,6 +80,44 @@
   return SPI1BUF;
 }*/
 
+#define ILI9341_RED         0xF800
+
+void writeBuffer(char *cbuf, unsigned short startX, unsigned short startY) {
+    char len = 16;
+    unsigned short newX = 0, newY = 0, index = 0, diffX = 6;
+    unsigned char toUse;
+    while (index < len) {
+          toUse = (*(cbuf + index));
+          newX = startX + (index * diffX);
+          //newY = startY;
+          writeChar(newX, startY, toUse);
+          //writeChar(test + index * diffX, 200, 23);
+          //writeChar(newX, newY, 23);//cbuf[index]);
+          index++;
+          /*_CP0_SET_COUNT(0);
+          while (_CP0_GET_COUNT() < 100000) {
+              ;
+          }*/
+          
+      }
+}
+
+void writeProgressBar(unsigned short perc, unsigned short startX, unsigned short startY) {
+    unsigned char i = 0;
+    while (i < perc) {
+        writeChar(startX-2+i, startY + 10, '|');
+        i++;
+    }
+}
+
+void clearBar(unsigned short startX, unsigned short startY, unsigned short len) {
+    unsigned char i = 0;
+    unsigned short diffX = 5;
+    while (i < len) {
+        writeCharClear(startX+diffX*i, startY);
+        i++;
+    }
+}
 
 int main(void) {
   
@@ -87,12 +126,85 @@ int main(void) {
   // set the CP0 CONFIG register to indicate that kseg0 is cacheable (0x3)
   __builtin_mtc0(_CP0_CONFIG, _CP0_CONFIG_SELECT, 0xa4210583);
   
-  
+  SPI1_init();
+  LCD_init();
 
+  LCD_clearScreen(0x0000);
+//  _CP0_SET_COUNT(0);
+//  while (_CP0_GET_COUNT() < 1000000) {
+//      ;
+//  }
+//  unsigned short xtest = 100;
+//  unsigned short ytest = 100;
+//  LCD_drawPixel(xtest, ytest, ILI9341_RED);
+//  LCD_drawPixel(xtest+1, ytest, ILI9341_RED);
+//  LCD_drawPixel(xtest+2, ytest, ILI9341_RED);
+//  LCD_drawPixel(xtest, ytest+1, ILI9341_RED);
+//  LCD_drawPixel(xtest+1, ytest+1, ILI9341_RED);
+//  LCD_drawPixel(xtest+2, ytest+1, ILI9341_RED);
+//  LCD_drawPixel(xtest, ytest+2, ILI9341_RED);
+//  LCD_drawPixel(xtest+1, ytest+2, ILI9341_RED);
+//  LCD_drawPixel(xtest+2, ytest+2, ILI9341_RED);
+  
+  //writeChar(200, 200, 21);
+  //writeChar(206, 200, 21);
+  //writeChar(212, 200, 21);
+  //writeChar(188, 200, 21);
   __builtin_enable_interrupts();
+  
+  //char index = 0;
+  char len = 16;
+  char cbuf[len];
+  sprintf(cbuf, "Hello world %d!", 0);
+  
+  unsigned short startX = 20, startY = 20, diffX = 6, newX = 0, newY = 0;
+  unsigned short test = 50;
+  unsigned short perc = 0;
+  unsigned char toUse;
 
   while(1) {
-
+      clearBar(startX, startY, 20);
+      clearBar(startX, startY+10, 20);
+      clearBar(startX, startY+20, 20);
+      sprintf(cbuf, "Hello world %d!", perc);
+      _CP0_SET_COUNT(0);
+      writeBuffer(&cbuf, startX, startY);
+      writeProgressBar(perc, startX, startY);
+      //writeChar(100, 200, 21);
+      /*while (index < len) {
+          toUse = cbuf[index];
+          writeChar(test, 200, 23);
+          writeChar(test + index * diffX, 200, 23);
+          newX = startX + (index * diffX);
+          newY = startY;
+          writeChar(newX, startY, toUse);
+          //writeChar(test + index * diffX, 200, 23);
+          //writeChar(newX, newY, 23);//cbuf[index]);
+          index++;
+          _CP0_SET_COUNT(0);
+          while (_CP0_GET_COUNT() < 100000) {
+              ;
+          }
+          
+      }*/
+      //index = 0;
+//      LCD_clearScreen(0x0000);
+//      _CP0_SET_COUNT(0);
+//      while (_CP0_GET_COUNT() < 1000000) {
+//          ;
+//      }
+//      LCD_clearScreen(0xFFFF);
+      int start = _CP0_GET_COUNT();
+      _CP0_SET_COUNT(0);
+      while (_CP0_GET_COUNT() < 800000) {
+          ;
+      }
+      unsigned int fps = (48000000) / (start + _CP0_GET_COUNT());
+      sprintf(cbuf, "FPS: %d        ", fps);
+      writeBuffer(&cbuf, startX, startY+20);
+      //LCD_clearScreen(0x0000);
+      perc++;
+      perc %= 101;
   }
   return 0;
 }

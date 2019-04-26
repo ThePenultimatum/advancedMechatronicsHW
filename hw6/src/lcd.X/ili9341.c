@@ -262,3 +262,37 @@ void LCD_clearScreen(unsigned short color) {
     
     CS = 1; // CS
 }
+
+void writeChar(unsigned short xTLCorner, unsigned short yTLCorner, unsigned char c) {
+    unsigned short index = c - 0x20;
+    if ((index < 0) | (index > 95) | ((xTLCorner + 5) >  239) | ((yTLCorner + 16) >  319)) {
+        return;
+    }
+    char *cval;//[1][5]; 
+    cval = &(ASCII[index]);
+    unsigned char col, i = 0, j = 0, k = 0;
+    for (i = 0; i < 5; i++) {
+        col = *(cval + i);//0x5F;//(*cval) + i;//cval[0][i];
+        for (j = 0; j < 8; j++) {
+            if (col & (0x01 << j)) {
+                LCD_drawPixel(xTLCorner + i, yTLCorner + j, ILI9341_RED);
+            }
+        }
+    }
+}
+
+void writeCharClear (unsigned short xTLCorner, unsigned short yTLCorner) {
+    //unsigned short index = 0x7C - 0x20;
+    //char *cval;//[1][5]; 
+    //cval = &(ASCII[index]);
+    char ctest[5] = {0xFF, 0xFF, 0xFF, 0xFF, 0xFF};
+    unsigned char col, i = 0, j = 0, k = 0;
+    for (i = 0; i < 5; i++) {
+        col = *(ctest + i);//0x5F;//(*cval) + i;//cval[0][i];
+        for (j = 0; j < 8; j++) {
+            if (col & (0x01 << j)) {
+                LCD_drawPixel(xTLCorner + i, yTLCorner + j, ILI9341_BLACK);
+            }
+        }
+    }
+}

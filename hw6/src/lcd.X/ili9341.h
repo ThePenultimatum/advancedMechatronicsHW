@@ -198,6 +198,11 @@ static const char ASCII[96][5] = {
 #define CS LATBbits.LATB7
 #define DC LATBbits.LATB15
 
+//// these xmax and ymax vals are for the specific LCD screen used for hw6
+#define xmax 239
+#define ymax 319
+////
+
 // functions
 void LCD_init();
 void SPI1_init();
@@ -208,5 +213,8 @@ void LCD_data16(unsigned short dat);
 void LCD_setAddr(unsigned short x, unsigned short y, unsigned short w, unsigned short h);
 void LCD_drawPixel(unsigned short x, unsigned short y, unsigned short color);
 void LCD_clearScreen(unsigned short color);
+
+void writeChar(unsigned short xTLCorner, unsigned short yTLCorner, unsigned char c);
+void writeCharClear(unsigned short xTLCorner, unsigned short yTLCorner);
 
 #endif
