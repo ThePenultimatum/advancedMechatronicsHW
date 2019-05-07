@@ -260,11 +260,13 @@ int main(void) {
   char cbuf[len];
   sprintf(cbuf, "Hello world %d!", 0);
   char imuData[ALL_BYTES];
+  char cbufData[40];
   
   unsigned short startX = 20, startY = 20, diffX = 6, newX = 0, newY = 0;
   unsigned short test = 50;
   unsigned short perc = 0;
   unsigned char toUse;
+  short temp, gx, gy, gz, ax, ay, az;
 
   while(1) {
       if (LATBbits.LATB9) {
@@ -275,6 +277,7 @@ int main(void) {
       clearBar(startX, startY, 20);
       clearBar(startX, startY+10, 20);
       clearBar(startX, startY+20, 20);
+      clearBar(startX, startY+100, 20);
       sprintf(cbuf, "Hello world %d!", perc);
       _CP0_SET_COUNT(0);
       writeBuffer(cbuf, startX, startY);
@@ -295,6 +298,15 @@ int main(void) {
       I2C_read_multiple(SLAVE_ADDR_WRITE, ALL_REG, imuData, ALL_BYTES);
       
       
+      temp = (imuData[0]<<8)|(imuData[1]);
+      gx = (imuData[2]<<8)|(imuData[3]);
+      gy = (imuData[4]<<8)|(imuData[5]);
+      gz = (imuData[6]<<8)|(imuData[7]);
+      ax = (imuData[8]<<8)|(imuData[9]);
+      ay = (imuData[10]<<8)|(imuData[11]);
+      az = (imuData[12]<<8)|(imuData[13]);
+      sprintf(cbufData, "Gyro x: %d %d %d    ", gx, gy ,gz);
+      writeBuffer(cbufData, startX, startY+100);
   }
   return 0;
 }
