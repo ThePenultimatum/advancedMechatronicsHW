@@ -58,10 +58,19 @@
 #define IODIR 0x00
 */
 /////
-#define SLAVE_ADDR 0b1101011 //0x40
+#define SLAVE_ADDR_READ 0b11010111 //0x40
+#define SLAVE_ADDR_WRITE 0b11010110 //0x40
 #define CTRL1_XL 0b00010000
 #define CTRL2_G 0b00010001
 #define CTRL3_C 0b00010010
+#define ALL_REG 0x20
+#define ALL_BYTES 14
+#define TEMP_REG 0x20
+#define TEMP_BYTES 2
+#define GYRO_REG 0x22
+#define GYRO_BYTES 6
+#define ACCEL_REG 0x28
+#define ACCEL_BYTES 6
 
 /*void init_spi1() {
   //RPB8Rbits.RPB8R = 0b0011; // ties SDO1 to RB8
@@ -94,11 +103,57 @@
 void setupHardware(void);
 void writeToRegister(char, char);
 
+void I2C_read_multiple(unsigned char address, unsigned char reg, unsigned char * imuData, int length) {
+    i2c_master_start();
+    i2c_master_send(SLAVE_ADDR_WRITE);
+    i2c_master_send(reg);
+    //i2c_master_send(0b00000011);
+    //i2c_master_stop();
+        
+    i2c_master_restart();
+    
+    i2c_master_send(SLAVE_ADDR_READ);
+    //i2c_master_send(GPIO);
+    char v;
+    int ind = 0;
+      
+    for (ind = 0; ind-1 < length; ind++) {
+        v = i2c_master_recv();
+        imuData[ind] = v;
+        i2c_master_ack(0); // want more characters
+        LATBbits.LATB9 = 0;
+          
+    }
+    LATBbits.LATB9 = 0;
+    v = i2c_master_recv();
+    imuData[length-1] = v;
+    i2c_master_ack(1); // want no more characters
+       
+    if (!(v & 0b10000000)) {
+        //LATBbits.LATB8 = 1;
+        //LATBbits.LATB7 = 1;
+        //LATBbits.LATB7 = 0;
+        i2c_master_stop();
+        //int i = 0;
+        //while (i < 10000) {
+        //    i++;
+        //    ;
+        //}
+        //writeToRegister(GPIO, 0x03);
+    } else {
+        i2c_master_stop();
+        //LATBbits.LATB8 = 0;
+        //LATBbits.LATB7 = 0;
+        //writeToRegister(GPIO, 0x00);
+    }
+    //LATBbits.LATB9 = 0;
+}
+
 void setupHardware() {
     ANSELBbits.ANSB2 = 0;
     ANSELBbits.ANSB3 = 0;
     
-    I2C2BRG = 90;// = ((1/(2*Fsck) - T_PGD)F_pb) - 2 where T_PGD = 104ns
+    I2C2BRG = 233;//90;// = ((1/(2*Fsck) - T_PGD)F_pb) - 2 where T_PGD = 104ns
     
     I2C2CONbits.ON = 1; // enable I2C 1
     
@@ -108,7 +163,7 @@ void setupHardware() {
 
 void writeToRegister(char reg, char byteval) {
     i2c_master_start();                     // Begin the start sequence
-    i2c_master_send(SLAVE_ADDR);// << 1);       // send the slave address, left shifted by 1, 
+    i2c_master_send(SLAVE_ADDR_WRITE);// << 1);       // send the slave address, left shifted by 1, 
                                         // which clears bit 0, indicating a write
     //LATBbits.LATB8 = 1;
     i2c_master_send(reg);         // send a byte to the slave       
@@ -165,6 +220,8 @@ int main(void) {
   __builtin_mtc0(_CP0_CONFIG, _CP0_CONFIG_SELECT, 0xa4210583);
   
   INTCONbits.MVEC = 0x1;
+  TRISBbits.TRISB9 = 0;
+  LATBbits.LATB9 = 0;
 
   // disable JTAG to get pins back
   DDPCONbits.JTAGEN = 0;
@@ -202,6 +259,7 @@ int main(void) {
   char len = 16;
   char cbuf[len];
   sprintf(cbuf, "Hello world %d!", 0);
+  char imuData[ALL_BYTES];
   
   unsigned short startX = 20, startY = 20, diffX = 6, newX = 0, newY = 0;
   unsigned short test = 50;
@@ -209,6 +267,11 @@ int main(void) {
   unsigned char toUse;
 
   while(1) {
+      if (LATBbits.LATB9) {
+          LATBbits.LATB9 = 0;
+      } else {
+          LATBbits.LATB9 = 1;
+      }
       clearBar(startX, startY, 20);
       clearBar(startX, startY+10, 20);
       clearBar(startX, startY+20, 20);
@@ -216,33 +279,9 @@ int main(void) {
       _CP0_SET_COUNT(0);
       writeBuffer(cbuf, startX, startY);
       writeProgressBar(perc, startX, startY);
-      //writeChar(100, 200, 21);
-      /*while (index < len) {
-          toUse = cbuf[index];
-          writeChar(test, 200, 23);
-          writeChar(test + index * diffX, 200, 23);
-          newX = startX + (index * diffX);
-          newY = startY;
-          writeChar(newX, startY, toUse);
-          //writeChar(test + index * diffX, 200, 23);
-          //writeChar(newX, newY, 23);//cbuf[index]);
-          index++;
-          _CP0_SET_COUNT(0);
-          while (_CP0_GET_COUNT() < 100000) {
-              ;
-          }
-          
-      }*/
-      //index = 0;
-//      LCD_clearScreen(0x0000);
-//      _CP0_SET_COUNT(0);
-//      while (_CP0_GET_COUNT() < 1000000) {
-//          ;
-//      }
-//      LCD_clearScreen(0xFFFF);
       int start = _CP0_GET_COUNT();
       _CP0_SET_COUNT(0);
-      while (_CP0_GET_COUNT() < 800000) {
+      while (_CP0_GET_COUNT() < 400000) {
           ;
       }
       unsigned int fps = (48000000) / (start + _CP0_GET_COUNT());
@@ -251,6 +290,11 @@ int main(void) {
       //LCD_clearScreen(0x0000);
       perc++;
       perc %= 101;
+      
+      
+      I2C_read_multiple(SLAVE_ADDR_WRITE, ALL_REG, imuData, ALL_BYTES);
+      
+      
   }
   return 0;
 }
