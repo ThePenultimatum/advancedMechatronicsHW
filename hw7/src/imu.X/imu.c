@@ -118,42 +118,25 @@ void I2C_read_multiple(unsigned char address, unsigned char reg, unsigned char *
     int ind = 0;
       
     for (ind = 0; ind-1 < length; ind++) {
+        v &= 0x00;
         v = i2c_master_recv();
         imuData[ind] = v;
         i2c_master_ack(0); // want more characters
-        LATBbits.LATB9 = 0;
+        //LATBbits.LATB9 = 0;
           
     }
-    LATBbits.LATB9 = 0;
+    v &= 0x00;
     v = i2c_master_recv();
     imuData[length-1] = v;
     i2c_master_ack(1); // want no more characters
-       
-    if (!(v & 0b10000000)) {
-        //LATBbits.LATB8 = 1;
-        //LATBbits.LATB7 = 1;
-        //LATBbits.LATB7 = 0;
-        i2c_master_stop();
-        //int i = 0;
-        //while (i < 10000) {
-        //    i++;
-        //    ;
-        //}
-        //writeToRegister(GPIO, 0x03);
-    } else {
-        i2c_master_stop();
-        //LATBbits.LATB8 = 0;
-        //LATBbits.LATB7 = 0;
-        //writeToRegister(GPIO, 0x00);
-    }
-    //LATBbits.LATB9 = 0;
+    i2c_master_stop();
 }
 
 void setupHardware() {
     ANSELBbits.ANSB2 = 0;
     ANSELBbits.ANSB3 = 0;
     
-    I2C2BRG = 233;//90;// = ((1/(2*Fsck) - T_PGD)F_pb) - 2 where T_PGD = 104ns
+    I2C2BRG = 500;//90;// = ((1/(2*Fsck) - T_PGD)F_pb) - 2 where T_PGD = 104ns
     
     I2C2CONbits.ON = 1; // enable I2C 1
     
@@ -174,8 +157,7 @@ void writeToRegister(char reg, char byteval) {
 
 #define ILI9341_RED         0xF800
 
-void writeBuffer(char *cbuf, unsigned short startX, unsigned short startY) {
-    char len = 16;
+void writeBuffer(char *cbuf, unsigned short startX, unsigned short startY, unsigned int len) {
     unsigned short newX = 0, newY = 0, index = 0, diffX = 6;
     unsigned char toUse;
     while (index < len) {
@@ -202,11 +184,68 @@ void writeProgressBar(unsigned short perc, unsigned short startX, unsigned short
     }
 }
 
+void writeYBar(signed short yval) {
+    unsigned char i = 0, maxval = 50;
+    short minChange = 700, startX = 150, startY = 250;
+    short sign = 1;
+    ///////////////////////////////// round yval / 700 to nearest int
+    while (i < abs(yval/700)) {
+        if (yval < 0) {
+            sign = -1;
+        } else {
+            sign = 1;
+        }
+        writeChar(startX, startY + sign * i, '_');
+        i++;
+    }
+}
+
+void writeXBar(signed short xval) {
+    unsigned char i = 0, maxval = 50;
+    short minChange = 700, startX = 150, startY = 250;
+    short sign = 1;
+    ////////////////////////////////// round xval / 700 to nearest int
+    while (i < abs(xval/700)) {
+        if (xval < 0) {
+            sign = -1;
+        } else {
+            sign = 1;
+        }
+        writeChar(startX-2+sign*i, startY, '|');
+        i++;
+    }
+}
+
+void clearYBar() {
+    unsigned char i = 0, maxval = 50;
+    short minChange = 700, startX = 150, startY = 250;
+    //short sign = 1;
+    ///////////////////////////////// round yval / 700 to nearest int
+    clearBarVert(startX, startY-50, 20);
+}
+
+void clearXBar() {
+    unsigned char i = 0, maxval = 50;
+    short minChange = 700, startX = 150, startY = 250;
+    //short sign = 1;
+    ////////////////////////////////// round xval / 700 to nearest int
+    clearBar(0, startY, 200);
+}
+
 void clearBar(unsigned short startX, unsigned short startY, unsigned short len) {
     unsigned char i = 0;
     unsigned short diffX = 5;
     while (i < len) {
         writeCharClear(startX+diffX*i, startY);
+        i++;
+    }
+}
+
+void clearBarVert(unsigned short startX, unsigned short startY, unsigned short len) {
+    unsigned char i = 0;
+    unsigned short diffX = 5;
+    while (i < len) {
+        writeCharClear(startX, startY+diffX*i);
         i++;
     }
 }
@@ -229,26 +268,6 @@ int main(void) {
 
 
   LCD_clearScreen(0x0000);
-//  _CP0_SET_COUNT(0);
-//  while (_CP0_GET_COUNT() < 1000000) {
-//      ;
-//  }
-//  unsigned short xtest = 100;
-//  unsigned short ytest = 100;
-//  LCD_drawPixel(xtest, ytest, ILI9341_RED);
-//  LCD_drawPixel(xtest+1, ytest, ILI9341_RED);
-//  LCD_drawPixel(xtest+2, ytest, ILI9341_RED);
-//  LCD_drawPixel(xtest, ytest+1, ILI9341_RED);
-//  LCD_drawPixel(xtest+1, ytest+1, ILI9341_RED);
-//  LCD_drawPixel(xtest+2, ytest+1, ILI9341_RED);
-//  LCD_drawPixel(xtest, ytest+2, ILI9341_RED);
-//  LCD_drawPixel(xtest+1, ytest+2, ILI9341_RED);
-//  LCD_drawPixel(xtest+2, ytest+2, ILI9341_RED);
-  
-  //writeChar(200, 200, 21);
-  //writeChar(206, 200, 21);
-  //writeChar(212, 200, 21);
-  //writeChar(188, 200, 21);
   
   writeToRegister(CTRL1_XL, 0b10000010); // 1.66 KHz, 2g, 100 Hz; page 46 of datasheets
   writeToRegister(CTRL2_G, 0b10001000); // 1.66 KHz, 1000 dps; page 48 of datasheets
@@ -260,13 +279,18 @@ int main(void) {
   char cbuf[len];
   sprintf(cbuf, "Hello world %d!", 0);
   char imuData[ALL_BYTES];
-  char cbufData[40];
+  char cbufDataTemp[40];
+  char cbufDataGyro[40];
+  char cbufDataAccel[40];
   
   unsigned short startX = 20, startY = 20, diffX = 6, newX = 0, newY = 0;
   unsigned short test = 50;
   unsigned short perc = 0;
   unsigned char toUse;
-  short temp, gx, gy, gz, ax, ay, az;
+  signed short temp, gx, gy, gz, ax, ay, az;
+  
+  writeBuffer(cbuf, startX, startY, 16);
+  writeProgressBar(perc, startX, startY);
 
   while(1) {
       if (LATBbits.LATB9) {
@@ -277,10 +301,13 @@ int main(void) {
       clearBar(startX, startY, 20);
       clearBar(startX, startY+10, 20);
       clearBar(startX, startY+20, 20);
-      clearBar(startX, startY+100, 20);
+      //clearBar(startX, startY+100, 60);
+      //clearBar(startX, startY+120, 60);
+      //clearBar(startX, startY+140, 60);
+      clearBar(startX, startY+30, 60);
       sprintf(cbuf, "Hello world %d!", perc);
       _CP0_SET_COUNT(0);
-      writeBuffer(cbuf, startX, startY);
+      writeBuffer(cbuf, startX, startY, 16);
       writeProgressBar(perc, startX, startY);
       int start = _CP0_GET_COUNT();
       _CP0_SET_COUNT(0);
@@ -289,7 +316,7 @@ int main(void) {
       }
       unsigned int fps = (48000000) / (start + _CP0_GET_COUNT());
       sprintf(cbuf, "FPS: %d        ", fps);
-      writeBuffer(cbuf, startX, startY+20);
+      writeBuffer(cbuf, startX, startY+20, 16);
       //LCD_clearScreen(0x0000);
       perc++;
       perc %= 101;
@@ -298,15 +325,28 @@ int main(void) {
       I2C_read_multiple(SLAVE_ADDR_WRITE, ALL_REG, imuData, ALL_BYTES);
       
       
-      temp = (imuData[0]<<8)|(imuData[1]);
-      gx = (imuData[2]<<8)|(imuData[3]);
-      gy = (imuData[4]<<8)|(imuData[5]);
-      gz = (imuData[6]<<8)|(imuData[7]);
-      ax = (imuData[8]<<8)|(imuData[9]);
-      ay = (imuData[10]<<8)|(imuData[11]);
-      az = (imuData[12]<<8)|(imuData[13]);
-      sprintf(cbufData, "Gyro x: %d %d %d    ", gx, gy ,gz);
-      writeBuffer(cbufData, startX, startY+100);
+      //temp = ((imuData[0] & 0x00FF)|((imuData[1] & 0x00FF)<<8)); // starts with index 0 which is temp_L
+      //gx = ((imuData[2] & 0x00FF)|((imuData[3] & 0x00FF)<<8));
+      //gy = ((imuData[4] & 0x00FF)|((imuData[5] & 0x00FF)<<8));
+      //gz = ((imuData[6] & 0x00FF)|((imuData[7] & 0x00FF)<<8));
+      ax = ((imuData[8] & 0x00FF)|((imuData[9] & 0x00FF)<<8));
+      ay = ((imuData[10] & 0x00FF)|((imuData[11] & 0x00FF)<<8));
+      //az = ((imuData[12] & 0x00FF)|((imuData[13] & 0x00FF)<<8));
+      //sprintf(cbufDataTemp, "Temp %hi!                         ", temp);
+      //writeBuffer(cbufDataTemp, startX, startY+140, 40);
+      //sprintf(cbufDataGyro, "Gyro x,y,z: %hi, %hi, %hi!        ", 1000*gx, 1000*gy, 1000*gz);
+      //writeBuffer(cbufDataGyro, startX, startY+100, 40);
+      //sprintf(cbufDataAccel, "Acc x,y,z: %hi, %hi, %hi!        ", 2*ax, 2*ay, 2*az);
+      ax = 2*ax;
+      ay = 2*ay;
+      //writeBuffer(cbufDataAccel, startX, startY+120, 40);
+      sprintf(cbufDataAccel, "Acc x,y: %hi, %hi!             ", ax, ay);
+      writeBuffer(cbufDataAccel, startX, startY+30, 40);
+      clearXBar();
+      writeXBar(ax);
+      clearYBar();
+      writeYBar(ay);
+      // start 60 below the lowest written data above, then go 1 pixel bar up for each 700, down for each -700, left for each -700, right for each 700
   }
   return 0;
 }
