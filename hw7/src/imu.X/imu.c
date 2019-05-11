@@ -276,8 +276,10 @@ int main(void) {
   
   //char index = 0;
   char len = 16;
-  char cbuf[len];
-  sprintf(cbuf, "Hello world %d!", 0);
+  char cbufProgress[len];
+  char cbufHello[len];
+  char cbufFPS[len];
+  sprintf(cbufHello, "Hello world %d!", 0);
   char imuData[ALL_BYTES];
   char cbufDataTemp[40];
   char cbufDataGyro[40];
@@ -289,8 +291,13 @@ int main(void) {
   unsigned char toUse;
   signed short temp, gx, gy, gz, ax, ay, az;
   
-  writeBuffer(cbuf, startX, startY, 16);
+  writeBuffer(cbufHello, startX, startY, 16);
   writeProgressBar(perc, startX, startY);
+  
+  sprintf(cbufDataAccel, "Acc x,y: %hi, %hi!             ", ax, ay);
+  writeBuffer(cbufDataAccel, startX, startY+30, 40);
+  sprintf(cbufFPS, "FPS: %d        ", 0);
+  writeBuffer(cbufFPS, startX, startY+20, 16);
 
   while(1) {
       if (LATBbits.LATB9) {
@@ -298,16 +305,11 @@ int main(void) {
       } else {
           LATBbits.LATB9 = 1;
       }
-      clearBar(startX, startY, 20);
-      clearBar(startX, startY+10, 20);
-      clearBar(startX, startY+20, 20);
-      //clearBar(startX, startY+100, 60);
-      //clearBar(startX, startY+120, 60);
-      //clearBar(startX, startY+140, 60);
-      clearBar(startX, startY+30, 60);
-      sprintf(cbuf, "Hello world %d!", perc);
+      
+      clearBar(startX+diffX*12, startY, 6);
+      sprintf(cbufHello, "            %d!", perc);
       _CP0_SET_COUNT(0);
-      writeBuffer(cbuf, startX, startY, 16);
+      writeBuffer(cbufHello, startX, startY, 16);
       writeProgressBar(perc, startX, startY);
       int start = _CP0_GET_COUNT();
       _CP0_SET_COUNT(0);
@@ -315,32 +317,25 @@ int main(void) {
           ;
       }
       unsigned int fps = (48000000) / (start + _CP0_GET_COUNT());
-      sprintf(cbuf, "FPS: %d        ", fps);
-      writeBuffer(cbuf, startX, startY+20, 16);
+      
+      clearBar(startX+diffX*5, startY+20, 6);
+      sprintf(cbufFPS, "     %d        ", fps);
+      writeBuffer(cbufFPS, startX, startY+20, 16);
       //LCD_clearScreen(0x0000);
       perc++;
+      if (perc > 100) {
+          clearBar(startX, startY+10, 20);
+      }
       perc %= 101;
       
       
       I2C_read_multiple(SLAVE_ADDR_WRITE, ALL_REG, imuData, ALL_BYTES);
       
+      ax = 2*((imuData[8] & 0x00FF)|((imuData[9] & 0x00FF)<<8)); // 2 * because of scaling
+      ay = 2*((imuData[10] & 0x00FF)|((imuData[11] & 0x00FF)<<8)); // 2 * because of scaling
       
-      //temp = ((imuData[0] & 0x00FF)|((imuData[1] & 0x00FF)<<8)); // starts with index 0 which is temp_L
-      //gx = ((imuData[2] & 0x00FF)|((imuData[3] & 0x00FF)<<8));
-      //gy = ((imuData[4] & 0x00FF)|((imuData[5] & 0x00FF)<<8));
-      //gz = ((imuData[6] & 0x00FF)|((imuData[7] & 0x00FF)<<8));
-      ax = ((imuData[8] & 0x00FF)|((imuData[9] & 0x00FF)<<8));
-      ay = ((imuData[10] & 0x00FF)|((imuData[11] & 0x00FF)<<8));
-      //az = ((imuData[12] & 0x00FF)|((imuData[13] & 0x00FF)<<8));
-      //sprintf(cbufDataTemp, "Temp %hi!                         ", temp);
-      //writeBuffer(cbufDataTemp, startX, startY+140, 40);
-      //sprintf(cbufDataGyro, "Gyro x,y,z: %hi, %hi, %hi!        ", 1000*gx, 1000*gy, 1000*gz);
-      //writeBuffer(cbufDataGyro, startX, startY+100, 40);
-      //sprintf(cbufDataAccel, "Acc x,y,z: %hi, %hi, %hi!        ", 2*ax, 2*ay, 2*az);
-      ax = 2*ax;
-      ay = 2*ay;
-      //writeBuffer(cbufDataAccel, startX, startY+120, 40);
-      sprintf(cbufDataAccel, "Acc x,y: %hi, %hi!             ", ax, ay);
+      clearBar(startX+diffX*9, startY+30, 20);
+      sprintf(cbufDataAccel, "         %hi  %hi              ", ax, ay);
       writeBuffer(cbufDataAccel, startX, startY+30, 40);
       clearXBar();
       writeXBar(ax);
