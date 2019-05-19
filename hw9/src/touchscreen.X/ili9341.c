@@ -199,7 +199,7 @@ void SPI1_init() {
   
   SPI1CON = 0; // turn off the spi module and reset it
   SPI1BUF; // clear the rx buffer by reading from it
-  SPI1BRG = 0; // baud rate to 12 MHz [SPI1BRG = (48000000/(2*desired))-1]
+  SPI1BRG = 3; // baud rate to 12 MHz [SPI1BRG = (48000000/(2*desired))-1]
   SPI1STATbits.SPIROV = 0; // clear the overflow bit
   SPI1CONbits.CKE = 1; // data changes when clock goes from hi to lo (since CKP is 0)
   SPI1CONbits.MSTEN = 1; // master operation
@@ -297,4 +297,67 @@ void writeCharClear (unsigned short xTLCorner, unsigned short yTLCorner) {
             }
         }
     }
+}
+
+unsigned int getZ(int z1, int z2) {
+    return (z1 - z2) + 4095;
+}
+
+unsigned int getTouchscreenResultFromPieces(unsigned int val1, unsigned int val2) {
+    return (((val1 << 8) | val2) >> 3) & 0x0FFF;
+}
+
+unsigned int touchscreenCommand(unsigned char address) {
+    spi_io(address);
+    unsigned int val1 = spi_io(0x00);
+    unsigned int val2 = spi_io(0x00);
+    return getTouchscreenResultFromPieces(val1, val2);
+}
+
+void XPT2046_read(unsigned short *x, unsigned short *y, unsigned int *z) {
+    CSTOUCH = 0;
+    
+    int x1, x2, y1, y2, z11, z12, z1, z21, z22, z2;
+    
+    z1 = touchscreenCommand(Z1_ADDR_READ_TOUCH);
+    //z11 = touchscreenCommand(0x00);
+    //z12 = touchscreenCommand(0x00);
+    //z1 = (((z11 << 8) | z12) >> 3) & 0x0FFF;
+    
+    //touchscreenCommand(Z2_ADDR_READ_TOUCH);
+    //z21 = touchscreenCommand(0x00);
+    //z22 = touchscreenCommand(0x00);
+    z2 = touchscreenCommand(Z2_ADDR_READ_TOUCH);
+    //z21 = touchscreenCommand(0x00);
+    //z22 = touchscreenCommand(0x00);
+    //z2 = (((z21 << 8) | z22) >> 3) & 0x0FFF;
+    
+    *x = 0;
+    *y = 0;
+    *z = getZ(z1, z2);
+    
+    if (*z > 50) {
+            
+        //touchscreenCommand(X_ADDR_READ_TOUCH);
+        //x1 = touchscreenCommand(0x00);
+        //x2 = touchscreenCommand(0x00);
+        *x = touchscreenCommand(X_ADDR_READ_TOUCH);
+        //x1 = touchscreenCommand(0x00);
+        //x2 = touchscreenCommand(0x00);
+        //*x = (((0b01111101 << 8) | 0b0000000000000000) >> 3) & 0x0FFF;
+
+        //touchscreenCommand(Y_ADDR_READ_TOUCH);
+        //y1 = touchscreenCommand(0x00);
+        //y2 = touchscreenCommand(0x00);
+        *y = touchscreenCommand(Y_ADDR_READ_TOUCH);
+        //y1 = touchscreenCommand(0x00);
+        //y2 = touchscreenCommand(0x00);
+        //*y = (((y1 << 8) | y2) >> 3) & 0x0FFF;
+
+        //touchscreenCommand(Z1_ADDR_READ_TOUCH);
+        //z11 = touchscreenCommand(0x00);
+        //z12 = touchscreenCommand(0x00);
+    }
+    
+    CSTOUCH = 1;
 }

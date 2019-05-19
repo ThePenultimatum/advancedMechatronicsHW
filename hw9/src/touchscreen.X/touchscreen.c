@@ -72,34 +72,6 @@
 #define ACCEL_REG 0x28
 #define ACCEL_BYTES 6
 
-/*void init_spi1() {
-  //RPB8Rbits.RPB8R = 0b0011; // ties SDO1 to RB8
-  RPB5Rbits.RPB5R = 0b0011; // ties SDO1 to RB5
-  SDI1Rbits.SDI1R = 0b0011; // ties SDI1 to RB11
-  
-  // Master - SPI1  
-  // we manually control SS4 as a digital output (F12) ????????????????????
-  // since the pic is just starting, we know that spi is off. We rely on defaults here
- 
-  // setup spi1 , all bits must be changed for SPI1 from SPI1
-  SPI1CON = 0;              // turn off the spi module and reset it
-  SPI1BUF;                  // clear the rx buffer by reading from it
-  SPI1BRG = 0x9C3; // this makes it 9600 baud //0x3;            // baud rate to 10 MHz [SPI1BRG = (80000000/(2*desired))-1]
-  SPI1STATbits.SPIROV = 0;  // clear the overflow bit
-  SPI1CONbits.CKE = 1;      // data changes when clock goes from hi to lo (since CKP is 0)
-  SPI1CONbits.MSTEN = 1;    // master operation
-  SPI1CONbits.ON = 1;       // turn on spi 1
-  
-}*/
-
-/*unsigned char spi1_io(unsigned char input) {
-  SPI1BUF = input;
-  while(!SPI1STATbits.SPIRBF) { // wait to receive the byte
-    ;
-  }
-  return SPI1BUF;
-}*/
-
 void setupHardware(void);
 void writeToRegister(char, char);
 
@@ -284,20 +256,49 @@ int main(void) {
   char cbufDataTemp[40];
   char cbufDataGyro[40];
   char cbufDataAccel[40];
+  char xdatabuf[40];
+  char ydatabuf[40];
+  char zdatabuf[40];
   
   unsigned short startX = 20, startY = 20, diffX = 6, newX = 0, newY = 0;
   unsigned short test = 50;
   unsigned short perc = 0;
   unsigned char toUse;
-  signed short temp, gx, gy, gz, ax, ay, az;
+  signed short temp, gx, gy, gz, ax, ay, az, lastnewx = 0, lastnewy = 0;
+  unsigned int x, y, z;
+  int incrementer;
   
-  writeBuffer(cbufHello, startX, startY, 16);
-  writeProgressBar(perc, startX, startY);
+  writeProgressBar(40, 10, 120);
+  writeProgressBar(40, 10, 126);
+  writeProgressBar(40, 10, 132);
+  writeProgressBar(40, 10, 138);
+  writeProgressBar(40, 10, 144);
+  writeProgressBar(40, 10, 150);
   
-  sprintf(cbufDataAccel, "Acc x,y: %hi, %hi!             ", ax, ay);
-  writeBuffer(cbufDataAccel, startX, startY+30, 40);
-  sprintf(cbufFPS, "FPS: %d        ", 0);
-  writeBuffer(cbufFPS, startX, startY+20, 16);
+  writeProgressBar(40, 10, 160);
+  writeProgressBar(40, 10, 166);
+  writeProgressBar(40, 10, 172);
+  writeProgressBar(40, 10, 178);
+  writeProgressBar(40, 10, 184);
+  writeProgressBar(40, 10, 190);
+  
+//  writeBuffer(cbufHello, startX, startY, 16);
+//  writeProgressBar(perc, startX, startY);
+//  
+//  sprintf(cbufDataAccel, "Acc x,y: %hi, %hi!             ", ax, ay);
+//  writeBuffer(cbufDataAccel, startX, startY+30, 40);
+//  sprintf(cbufFPS, "FPS: %d        ", 0);
+//  writeBuffer(cbufFPS, startX, startY+20, 16);
+  incrementer = 0;
+  sprintf(xdatabuf, "Increment variable: %d   ", incrementer);
+  writeBuffer(xdatabuf, startX, startY+10, 30);
+  
+  sprintf(xdatabuf, "Touch position x: %d   ", 0);
+  writeBuffer(xdatabuf, startX, startY+50, 30);
+  sprintf(ydatabuf, "Touch position y: %d    ", 0);
+  writeBuffer(ydatabuf, startX, startY+60, 30);
+  sprintf(zdatabuf, "Touch position z: %d    ", 0);
+  writeBuffer(zdatabuf, startX, startY+70, 30);
 
   while(1) {
       if (LATBbits.LATB9) {
@@ -306,41 +307,83 @@ int main(void) {
           LATBbits.LATB9 = 1;
       }
       
-      clearBar(startX+diffX*12, startY, 6);
-      sprintf(cbufHello, "            %d!", perc);
-      _CP0_SET_COUNT(0);
-      writeBuffer(cbufHello, startX, startY, 16);
-      writeProgressBar(perc, startX, startY);
-      int start = _CP0_GET_COUNT();
+//      clearBar(startX+diffX*12, startY, 6);
+//      sprintf(cbufHello, "            %d!", perc);
+//      _CP0_SET_COUNT(0);
+//      writeBuffer(cbufHello, startX, startY, 16);
+//      writeProgressBar(perc, startX, startY);
+//      int start = _CP0_GET_COUNT();
+//      _CP0_SET_COUNT(0);
+//      while (_CP0_GET_COUNT() < 400000) {
+//          ;
+//      }
+//      unsigned int fps = (48000000) / (start + _CP0_GET_COUNT());
+//      
+//      clearBar(startX+diffX*5, startY+20, 6);
+//      sprintf(cbufFPS, "     %d        ", fps);
+//      writeBuffer(cbufFPS, startX, startY+20, 16);
+//      //LCD_clearScreen(0x0000);
+//      perc++;
+//      if (perc > 100) {
+//          clearBar(startX, startY+10, 20);
+//      }
+//      perc %= 101;
+//      
+//      
+//      I2C_read_multiple(SLAVE_ADDR_WRITE, ALL_REG, imuData, ALL_BYTES);
+//      
+//      ax = 2*((imuData[8] & 0x00FF)|((imuData[9] & 0x00FF)<<8)); // 2 * because of scaling
+//      ay = 2*((imuData[10] & 0x00FF)|((imuData[11] & 0x00FF)<<8)); // 2 * because of scaling
+//      
+//      clearBar(startX+diffX*9, startY+30, 20);
+//      sprintf(cbufDataAccel, "         %hi  %hi              ", ax, ay);
+//      writeBuffer(cbufDataAccel, startX, startY+30, 40);
+//      clearXBar();
+//      writeXBar(ax);
+//      clearYBar();
+//      writeYBar(ay);
+      
+      x = 0;
+      y = 0;
+      z = 0;
+      
+      XPT2046_read(&x, &y, &z);
+      
+      unsigned short newx = (unsigned short) (((float) x) / 4096 * 240);
+      unsigned short newy = (unsigned short) (((float) y) / 4096 * 320);
+      
+      clearBar(startX+diffX*18, startY+50, 20);
+      clearBar(startX+diffX*18, startY+60, 20);
+      clearBar(startX+diffX*18, startY+70, 20);
+      
+      sprintf(xdatabuf, "                  %d             ", newx);
+      writeBuffer(xdatabuf, startX, startY+50, 30);
+      sprintf(ydatabuf, "                  %d             ", newy);
+      writeBuffer(ydatabuf, startX, startY+60, 30);
+      sprintf(zdatabuf, "                  %d             ", z);
+      writeBuffer(zdatabuf, startX, startY+70, 30);
+      
+      if ((lastnewx > 5) && (lastnewx < 66) && (lastnewy > 155) && (lastnewy < 200) && (x == 0) && (y == 0)) { //(y > 120) && (y < 156)) {
+          incrementer++;
+          //} else if ((y > 160) && (y < 196)) {
+          //    incrementer--; 
+          //}
+        
+      } else if ((lastnewx > 5) && (lastnewx < 66) && (lastnewy > 115) && (lastnewy < 155) && (x == 0) && (y == 0)) {
+          incrementer--;
+      }
+      
+      lastnewx = newx;
+      lastnewy = newy;
+      
+      sprintf(xdatabuf, "                    %d                               ", incrementer);
+      clearBar(startX+diffX*20, startY+10, 20);
+      writeBuffer(xdatabuf, startX, startY+10, 30);    
+      
       _CP0_SET_COUNT(0);
       while (_CP0_GET_COUNT() < 400000) {
           ;
       }
-      unsigned int fps = (48000000) / (start + _CP0_GET_COUNT());
-      
-      clearBar(startX+diffX*5, startY+20, 6);
-      sprintf(cbufFPS, "     %d        ", fps);
-      writeBuffer(cbufFPS, startX, startY+20, 16);
-      //LCD_clearScreen(0x0000);
-      perc++;
-      if (perc > 100) {
-          clearBar(startX, startY+10, 20);
-      }
-      perc %= 101;
-      
-      
-      I2C_read_multiple(SLAVE_ADDR_WRITE, ALL_REG, imuData, ALL_BYTES);
-      
-      ax = 2*((imuData[8] & 0x00FF)|((imuData[9] & 0x00FF)<<8)); // 2 * because of scaling
-      ay = 2*((imuData[10] & 0x00FF)|((imuData[11] & 0x00FF)<<8)); // 2 * because of scaling
-      
-      clearBar(startX+diffX*9, startY+30, 20);
-      sprintf(cbufDataAccel, "         %hi  %hi              ", ax, ay);
-      writeBuffer(cbufDataAccel, startX, startY+30, 40);
-      clearXBar();
-      writeXBar(ax);
-      clearYBar();
-      writeYBar(ay);
       // start 60 below the lowest written data above, then go 1 pixel bar up for each 700, down for each -700, left for each -700, right for each 700
   }
   return 0;

@@ -196,8 +196,12 @@ static const char ASCII[96][5] = {
 
 // spi pins
 #define CS LATBbits.LATB7
-#define CSTOUCH LATBbits.LATB
+#define CSTOUCH LATBbits.LATB10
 #define DC LATBbits.LATB15
+#define X_ADDR_READ_TOUCH 0b11010001 // 0xD1
+#define Y_ADDR_READ_TOUCH 0b10010001 // 0x91
+#define Z1_ADDR_READ_TOUCH 0b10110001 // 0xB1
+#define Z2_ADDR_READ_TOUCH 0b11000001 // 0xC1
 
 //// these xmax and ymax vals are for the specific LCD screen used for hw6
 #define xmax 239
@@ -217,5 +221,10 @@ void LCD_clearScreen(unsigned short color);
 
 void writeChar(unsigned short xTLCorner, unsigned short yTLCorner, unsigned char c);
 void writeCharClear(unsigned short xTLCorner, unsigned short yTLCorner);
+
+void XPT2046_read(unsigned short *x, unsigned short *y, unsigned int *z);
+unsigned int getZ(int z1, int z2);
+unsigned int getTouchscreenResultFromPieces(unsigned int val1, unsigned int val2);
+unsigned int touchscreenCommand(unsigned char address);
 
 #endif
