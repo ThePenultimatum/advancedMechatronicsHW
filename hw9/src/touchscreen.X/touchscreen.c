@@ -293,11 +293,11 @@ int main(void) {
   sprintf(xdatabuf, "Increment variable: %d   ", incrementer);
   writeBuffer(xdatabuf, startX, startY+10, 30);
   
-  sprintf(xdatabuf, "Touch position x: %d   ", 0);
+  sprintf(xdatabuf, "Touch position x, rax_x: %d, %d  ", 0, 0);
   writeBuffer(xdatabuf, startX, startY+50, 30);
-  sprintf(ydatabuf, "Touch position y: %d    ", 0);
+  sprintf(ydatabuf, "Touch position y, raw_y: %d, %d  ", 0, 0);
   writeBuffer(ydatabuf, startX, startY+60, 30);
-  sprintf(zdatabuf, "Touch position z: %d    ", 0);
+  sprintf(zdatabuf, "Touch position z, raw_z: %d, %d  ", 0, 0);
   writeBuffer(zdatabuf, startX, startY+70, 30);
 
   while(1) {
@@ -356,11 +356,11 @@ int main(void) {
       clearBar(startX+diffX*18, startY+60, 20);
       clearBar(startX+diffX*18, startY+70, 20);
       
-      sprintf(xdatabuf, "                  %d             ", newx);
+      sprintf(xdatabuf, "                  %d, %d         ", newx, x);
       writeBuffer(xdatabuf, startX, startY+50, 30);
-      sprintf(ydatabuf, "                  %d             ", newy);
+      sprintf(ydatabuf, "                  %d, %d         ", newy, y);
       writeBuffer(ydatabuf, startX, startY+60, 30);
-      sprintf(zdatabuf, "                  %d             ", z);
+      sprintf(zdatabuf, "                  %d, %d         ", z, z);
       writeBuffer(zdatabuf, startX, startY+70, 30);
       
       if ((lastnewx > 5) && (lastnewx < 66) && (lastnewy > 155) && (lastnewy < 200) && (x == 0) && (y == 0)) { //(y > 120) && (y < 156)) {
