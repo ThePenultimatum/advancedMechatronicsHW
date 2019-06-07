@@ -763,7 +763,7 @@ void APP_Tasks(void) {
              * The isReadComplete flag gets updated in the CDC event handler. */
 
              /* WAIT FOR 5HZ TO PASS OR UNTIL A LETTER IS RECEIVED */
-            if (appData.isReadComplete || _CP0_GET_COUNT() - startTime > (48000000 / 2 / 5 )) { // Now 100 Hz after / 20
+            if (appData.isReadComplete || _CP0_GET_COUNT() - startTime > (48000000 / 2 / 100 )) { // Now 100 Hz after / 20
                 appData.state = APP_STATE_SCHEDULE_WRITE;
             }
 
@@ -792,10 +792,15 @@ void APP_Tasks(void) {
       
             ax = 2*((imuData[8] & 0x00FF)|((imuData[9] & 0x00FF)<<8)); // 2 * because of scaling
             ay = 2*((imuData[10] & 0x00FF)|((imuData[11] & 0x00FF)<<8)); // 2 * because of scaling
+            az = 2*((imuData[12] & 0x00FF)|((imuData[13] & 0x00FF)<<8)); // 2 * because of scaling
+            
+            gx = 2*((imuData[2] & 0x00FF)|((imuData[3] & 0x00FF)<<8)); // 2 * because of scaling
+            gy = 2*((imuData[4] & 0x00FF)|((imuData[5] & 0x00FF)<<8)); // 2 * because of scaling
+            gz = 2*((imuData[6] & 0x00FF)|((imuData[7] & 0x00FF)<<8)); // 2 * because of scaling
             
             len = sprintf(dataOut,"%d\r\n", i);
             if (shouldWriteNow) {
-                len = sprintf(dataOut,  "%d %d %d\r\n", i, ax, ay);//"%d\r\n", i);
+                len = sprintf(dataOut,  "%d %d %d %d %d %d %d\r\n", i, ax, ay, az, gx, gy, gz);//"%d\r\n", i);
                 numsWritten++;
             }
             
