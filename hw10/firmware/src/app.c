@@ -787,32 +787,33 @@ void APP_Tasks(void) {
             AND REMEMBER THE NUMBER OF CHARACTERS IN len */
             /* THIS IS WHERE YOU CAN READ YOUR IMU, PRINT TO THE LCD, ETC */
             //sprintf(cbufDataAccel, "%hi %hi", ax, ay);
-            
-            I2C_read_multiple(SLAVE_ADDR_WRITE, ALL_REG, imuData, ALL_BYTES);
-      
-            ax = 2*((imuData[8] & 0x00FF)|((imuData[9] & 0x00FF)<<8)); // 2 * because of scaling
-            ay = 2*((imuData[10] & 0x00FF)|((imuData[11] & 0x00FF)<<8)); // 2 * because of scaling
-            az = 2*((imuData[12] & 0x00FF)|((imuData[13] & 0x00FF)<<8)); // 2 * because of scaling
-            
-            gx = 2*((imuData[2] & 0x00FF)|((imuData[3] & 0x00FF)<<8)); // 2 * because of scaling
-            gy = 2*((imuData[4] & 0x00FF)|((imuData[5] & 0x00FF)<<8)); // 2 * because of scaling
-            gz = 2*((imuData[6] & 0x00FF)|((imuData[7] & 0x00FF)<<8)); // 2 * because of scaling
-            
-            len = sprintf(dataOut,"%d\r\n", i);
+                        
+            len = sprintf(dataOut,"%d", i);
             if (shouldWriteNow) {
+                i++; // increment the index so we see a change in the text
+                I2C_read_multiple(SLAVE_ADDR_WRITE, ALL_REG, imuData, ALL_BYTES);
+      
+                ax = 2*((imuData[8] & 0x00FF)|((imuData[9] & 0x00FF)<<8)); // 2 * because of scaling
+                ay = 2*((imuData[10] & 0x00FF)|((imuData[11] & 0x00FF)<<8)); // 2 * because of scaling
+                az = 2*((imuData[12] & 0x00FF)|((imuData[13] & 0x00FF)<<8)); // 2 * because of scaling
+            
+                gx = 2*((imuData[2] & 0x00FF)|((imuData[3] & 0x00FF)<<8)); // 2 * because of scaling
+                gy = 2*((imuData[4] & 0x00FF)|((imuData[5] & 0x00FF)<<8)); // 2 * because of scaling
+                gz = 2*((imuData[6] & 0x00FF)|((imuData[7] & 0x00FF)<<8)); // 2 * because of scaling
                 len = sprintf(dataOut,  "%d %d %d %d %d %d %d\r\n", i, ax, ay, az, gx, gy, gz);//"%d\r\n", i);
                 numsWritten++;
-            }
-            
-            if (numsWritten >= 100) {
-                numsWritten = 0;
-                shouldWriteNow = 0;
-            }
-            
-            i++; // increment the index so we see a change in the text
-            USB_DEVICE_CDC_Write(USB_DEVICE_CDC_INDEX_0,
+                USB_DEVICE_CDC_Write(USB_DEVICE_CDC_INDEX_0,
                     &appData.writeTransferHandle, dataOut, len,
                     USB_DEVICE_CDC_TRANSFER_FLAGS_DATA_COMPLETE);
+                
+                if (numsWritten >= 100) {
+                    numsWritten = 0;
+                    shouldWriteNow = 0;
+                }
+            } else {
+                appData.isWriteComplete = true;
+            }
+            
             startTime = _CP0_GET_COUNT(); // reset the timer for acurate delays
             //}
             break;
